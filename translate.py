@@ -37,12 +37,12 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Translate text using google services")
-    parser.add_argument("text",metavar="TEXT",help="Text to translate")
+    parser.add_argument("text",metavar="TEXT",help="Text to translate",nargs="*")
     parser.add_argument("-i","--input",metavar="LANGUAGE",default="fr",help="Input Language (default fr)")
     parser.add_argument("-o","--output",metavar="LANGUAGE",default="en",help="Output Language (default en)")
     args = parser.parse_args()
 
-    t = translate(args.text,args.input,args.output)
+    t = translate(" ".join(args.text),args.input,args.output)
     if "trans" in t:
         print t["trans"]
     else:
