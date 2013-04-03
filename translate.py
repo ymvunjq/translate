@@ -19,6 +19,14 @@ def _get_url(url):
 
     return r
 
+
+def cmp_score(x,y):
+    """ Compare score of translation """
+    s1 = x.get("score",0)
+    s2 = y.get("score",0)
+    return cmp(s1,s2)
+
+
 def translate(text,lin="fr",lout="en"):
     url = "http://translate.google.fr/translate_a/t?client=a&text=%s&hl=%s&sl=%s&tl=%s&ie=UTF-8&oe=UTF-8&multires=1&ssel=0&tsel=0&sc=1" % (urllib.quote(text),lin,lin,lout,)
 
@@ -28,7 +36,7 @@ def translate(text,lin="fr",lout="en"):
         out["trans"] = r["sentences"][0]["trans"]
     if "dict" in r and "entry" in r["dict"][0]:
         out["other"] = []
-        for o in sorted(r["dict"][0]["entry"],lambda x,y: cmp(y["score"],x["score"])):
+        for o in sorted(r["dict"][0]["entry"],lambda x,y: cmp_score(y,x)):
             out["other"].append((o['word'],o['reverse_translation']))
     return out
 
