@@ -6,20 +6,62 @@ from itertools import imap
 import urllib2,urllib
 import json
 import pprint
+import ctypes
+import StringIO
+import gzip
+
+def sign(x):
+    return ctypes.c_int32(x).value
+
+def RL(a,b):
+    for c in xrange(0,len(b)-2,3):
+        d = b[c+2]
+        if d >= "a":
+            d = ord(d) - 87
+        else:
+            d = int(d)
+        if b[c+1] == '+':
+            d = sign(ctypes.c_uint32(a).value>>d)
+        else:
+            d = sign(a << d)
+        if b[c] == "+":
+            a = sign(a+d)
+        else:
+            a = a ^ d
+    return a
+
+
+def google_tk_challenge(s,win=402904):
+    Vb = "+-a^+6"
+    Ub = "+-3^+b+-f"
+
+    a = win
+    for c in s:
+        a += ord(c)
+        a = RL(a,Vb)
+    a = RL(a,Ub)
+    if a < 0:
+        a = (a & 2147483647) + 2147483648
+    a %= 1000000
+    return "%u.%u" % (a,a^win)
 
 def get_url(url):
-    ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.76 Safari/537.36"
+    ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.73 Safari/537.36"
     req = urllib2.Request(url)
     req.add_header("User-Agent",ua)
+    req.add_header("Accept-Encoding","gzip, deflate, sdch")
+    req.add_header("Accept","*/*")
 
     try:
-        r = urllib2.urlopen(req).read()
-
+        r = urllib2.urlopen(req)
+        r = StringIO.StringIO(r.read())
+        gzipper = gzip.GzipFile(fileobj=r)
+        content = gzipper.read()
     except urllib2.URLError as e:
-        print "URLError on url : %s => %s" % (e.url,e.reason,)
+        print "URLError on url : %s => %s" % (e.url,e.reason)
         sys.exit(0)
 
-    return r
+    return content
 
 def sanitize_json(data):
     while ",," in data:
@@ -64,7 +106,7 @@ def synonym(data):
     print ""
 
 def translate(text,lin="fr",lout="en",debug=False):
-    url = "https://translate.google.fr/translate_a/single?client=t&sl=%s&tl=%s&hl=%s&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&ie=UTF-8&oe=UTF-8&source=btn&ssel=3&tsel=0&otf=1&kc=7&tk=520264|395118&q=%s" % (lin,lout,lout,urllib.quote(text))
+    url = "https://translate.google.fr:443/translate_a/single?client=t&sl=%s&tl=%s&hl=%s&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&ie=UTF-8&oe=UTF-8&source=btn&ssel=3&tsel=0&kc=0&tk=%s&q=%s" % (lin,lout,lout,google_tk_challenge(text),urllib.quote(text))
 
     google_response = get_url(url)
     json_data = sanitize_json(google_response)
